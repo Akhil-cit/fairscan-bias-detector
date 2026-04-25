@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FairScan — AI Bias Detector</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1A56DB;--blue-l:#EBF2FF;--blue-d:#1040A0;--navy:#1A2A5E;--red:#C81E1E;--red-l:#FDE8E8;--amber:#92400E;--amber-l:#FEF3C7;--green:#065F46;--green-l:#D1FAE5;--text:#111827;--muted:#6B7280;--border:#E5E7EB;--bg:#F9FAFB;--white:#FFFFFF}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--navy);padding:14px 24px;display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex-shrink:0}
+header h1{font-size:17px;font-weight:600;color:#fff}
+header .badge{font-size:11px;color:#93C5FD;background:rgba(255,255,255,0.1);padding:3px 10px;border-radius:20px;margin-left:4px}
+.container{max-width:800px;margin:0 auto;padding:32px 20px}
+.hero{text-align:center;margin-bottom:28px}
+.hero h2{font-size:28px;font-weight:700;margin-bottom:8px;color:var(--navy)}
+.hero p{color:var(--muted);font-size:15px;max-width:540px;margin:0 auto;line-height:1.65}
+.card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);resize:vertical;min-height:120px;outline:none;transition:border-color .2s;line-height:1.65}
+textarea:focus{border-color:var(--blue);background:var(--white)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.chip-label{font-size:12px;color:var(--muted)}
+.chip{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);color:var(--muted);cursor:pointer;background:var(--white);transition:all .15s}
+.chip:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l)}
+.btn{width:100%;padding:13px;font-size:15px;font-weight:600;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--blue-d)}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+#result{display:none;margin-top:16px}
+.score-row{display:flex;align-items:center;gap:16px}
+.ring{width:66px;height:66px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:22px;flex-shrink:0}
+.ring small{font-size:10px;margin-top:1px}
+.ring-high{background:var(--red-l);color:var(--red)}
+.ring-med{background:var(--amber-l);color:var(--amber)}
+.ring-low{background:var(--green-l);color:var(--green)}
+.verdict{font-size:18px;font-weight:700}
+.verdict-sub{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5}
+hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+.sec-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tag{font-size:12px;padding:3px 10px;border-radius:20px;font-weight:500}
+.tag-high{background:#FDE8E8;color:#9B1C1C}
+.tag-med{background:#FEF3C7;color:#92400E}
+.tag-low{background:#D1FAE5;color:#065F46}
+.explain{font-size:14px;line-height:1.75;padding:12px 14px;background:var(--bg);border-radius:8px;border-left:3px solid var(--border);margin-bottom:14px;white-space:pre-wrap}
+.fair{font-size:14px;color:#1040A0;line-height:1.75;padding:12px 14px;background:var(--blue-l);border-radius:8px;border-left:3px solid var(--blue);white-space:pre-wrap}
+.dots{display:inline-flex;gap:5px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:blink 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
+footer{text-align:center;padding:28px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">FS</div>
+  <h1>FairScan</h1>
+  <span class="badge">AI Bias Detector · Solution Challenge 2026</span>
+</header>
+<div class="container">
+  <div class="hero">
+    <h2>Detect Bias in Automated Decisions</h2>
+    <p>Paste any automated decision — loan rejection, hiring filter, content policy — and Gemini AI will detect bias, explain the problem, and suggest a fairer version.</p>
+  </div>
+
+  <div class="card">
+    <label>Decision or Policy Text to Analyze</label>
+    <textarea id="input" placeholder="e.g. Loan application rejected. Applicant is female, age 28, from a rural ZIP code. Decision was based primarily on geographic location which historically correlates with minority communities..."></textarea>
+    <div class="chips">
+      <span class="chip-label">Try an example:</span>
+      <span class="chip" onclick="setEx('loan')">Loan rejection</span>
+      <span class="chip" onclick="setEx('hiring')">Hiring filter</span>
+      <span class="chip" onclick="setEx('content')">Content policy</span>
+    </div>
+  </div>
+
+  <button class="btn" id="btn" onclick="analyze()">Analyze for Bias</button>
+
+  <div id="result">
+    <div class="card">
+      <div class="score-row">
+        <div class="ring" id="ring">
+          <span id="score-num">0</span>
+          <small>/ 100</small>
+        </div>
+        <div>
+          <div class="verdict" id="verdict"></div>
+          <div class="verdict-sub" id="verdict-sub"></div>
+        </div>
+      </div>
+      <hr>
+      <div class="sec-label">Bias types found</div>
+      <div class="tags" id="tags"></div>
+      <div class="sec-label">Why this is biased</div>
+      <div class="explain" id="explain"></div>
+      <div class="sec-label">Fairer alternative</div>
+      <div class="fair" id="fair"></div>
+    </div>
+  </div>
+</div>
+<footer>FairScan · Unbiased AI Decision Track · Solution Challenge 2026 · Powered by Gemini AI</footer>
+
+<script>
+const EX = {
+  loan: "Loan application rejected. Applicant is a 24-year-old woman from a rural ZIP code with an immigrant surname. Income is $45,000/year. The decision used ZIP code as a primary weighting factor, which historically correlates with minority communities.",
+  hiring: "Candidate eliminated during resume screening. Name flagged as non-English origin. Graduated from a non-Ivy League school. Algorithm also penalized applicants with career gaps, disproportionately affecting women who took maternity leave.",
+  content: "User account flagged for automated review. Profile signals: from a low-income region, posts in a non-English language, account created recently. System automatically reduces content reach and monetization eligibility for these profiles."
+};
+
+function setEx(k){document.getElementById('input').value=EX[k]}
+
+async function analyze(){
+  const text=document.getElementById('input').value.trim();
+  if(!text){alert('Please enter some text to analyze.');return}
+  const btn=document.getElementById('btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
+  document.getElementById('result').style.display='none';
+
+  try{
+    const prompt=`You are a bias detection expert AI. Analyze the following automated decision or policy text for fairness issues.
+
+Text:
+"""
+${text}
+"""
+
+Respond ONLY with a valid JSON object, no markdown fences, no extra text:
+{
+  "bias_score": <integer 0-100, where 0=no bias, 100=extreme bias>,
+  "verdict": "<short phrase: High Bias Detected / Moderate Concerns / Minor Issues / Appears Fair>",
+  "verdict_sub": "<one sentence summary of the main issue>",
+  "bias_types": ["<BiasType1>", "<BiasType2>"],
+  "explanation": "<2-3 sentences explaining what specific bias exists and why it is problematic>",
+  "fair_alternative": "<rewrite the decision removing bias, focusing only on objective criteria>"
+}`;
+
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    const data=await res.json();
+    const raw=data.content.map(i=>i.text||"").join("").replace(/```json|```/g,"").trim();
+    const p=JSON.parse(raw);
+
+    const score=p.bias_score;
+    const ring=document.getElementById('ring');
+    ring.className='ring '+(score>=60?'ring-high':score>=30?'ring-med':'ring-low');
+    document.getElementById('score-num').textContent=score;
+    document.getElementById('verdict').textContent=p.verdict;
+    document.getElementById('verdict-sub').textContent=p.verdict_sub;
+
+    const tagsEl=document.getElementById('tags');
+    tagsEl.innerHTML='';
+    (p.bias_types||[]).forEach(t=>{
+      const cls=score>=60?'tag-high':score>=30?'tag-med':'tag-low';
+      tagsEl.innerHTML+=`<span class="tag ${cls}">${t}</span>`;
+    });
+    document.getElementById('explain').textContent=p.explanation;
+    document.getElementById('fair').textContent=p.fair_alternative;
+    document.getElementById('result').style.display='block';
+    document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){alert('Analysis failed. Please try again.\n'+e.message)}
+
+  btn.disabled=false;
+  btn.innerHTML='Analyze for Bias';
+}
+</script>
+</body>
+</html>
